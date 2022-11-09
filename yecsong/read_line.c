@@ -6,7 +6,7 @@
 /*   By: yecsong <yecsong@student.42seoul.kr>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/11/07 15:58:08 by yecsong           #+#    #+#             */
-/*   Updated: 2022/11/09 19:01:30 by yecsong          ###   ########.fr       */
+/*   Updated: 2022/11/09 19:31:21 by yecsong          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -73,12 +73,12 @@ void	add_token(t_info **info, int len)
 		(*info)->i++;
 }
 
-void	free_token(t_info **info)
+void	free_token(t_token *target)
 {
 	t_token	*token;
 	t_token	*temp;
 
-	token = (*info)->token;
+	token = target;
 	while (token)
 	{
 		temp = token;
@@ -174,7 +174,6 @@ void	split_token(t_info **info)
 		printf("token = %s\n", temp->token);
 		temp = temp->next;
 	}
-	free_token(info);
 }
 
 t_token	*tokenize(char *str)
@@ -189,6 +188,7 @@ t_token	*tokenize(char *str)
 	info->str = str;
 	info->token = token;
 	split_token(&info);
+	token = info->token;
 	free(info);
 	return (token);
 }
@@ -205,6 +205,7 @@ int	main()
 		add_history(str);
 		token = tokenize(str);
 		free(str);
-		//system("leaks a.out");
+		free_token(token);
+		system("leaks a.out");
 	}
 }
