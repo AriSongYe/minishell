@@ -6,7 +6,7 @@
 /*   By: yecsong <yecsong@student.42seoul.kr>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/11/07 15:58:08 by yecsong           #+#    #+#             */
-/*   Updated: 2022/11/09 16:13:41 by yecsong          ###   ########.fr       */
+/*   Updated: 2022/11/09 19:01:30 by yecsong          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -61,14 +61,16 @@ void	new_token(t_token **new)
 	}
 }
 
-void	add_token(t_info **info)
+void	add_token(t_info **info, int len)
 {
 	t_token	*last;
 
 	new_token(&(*info)->token);
 	last = last_token(&(*info)->token);
-	last->token = part_dup((*info)->str, (*info)->start, (*info)->i - 1);
-	(*info)->start = (*info)->i;
+	last->token = part_dup((*info)->str, (*info)->start, (*info)->i + len);
+	(*info)->start = (*info)->i + 1 + len;
+	if (len == 1)
+		(*info)->i++;
 }
 
 void	free_token(t_info **info)
@@ -95,10 +97,8 @@ void	free_token(t_info **info)
 #define	WHITE_SPACE		7
 #define	SINGLE_QUOTE	8
 #define	DOUBLE_QUOTE	9
-
-int	check_status(info, status)
-{
-}
+#define	OPTION			10
+#define	DOLLAR			11
 
 int	classify_status(char *str, int index)
 {
@@ -107,19 +107,25 @@ int	classify_status(char *str, int index)
 	else if (str[index] == '<' && str[index + 1] != '<')
 		return (INPUT_FILE);
 	else if (str[index] == '<' && str[index + 1] == '<')
-		return (OUTPUT_FILE);
-	else if (str[index] == '>' && str[index + 1] != '>')
 		return (HERE_DOC);
-	else if (str[index] == '<' && str[index + 1] == '<')
+	else if (str[index] == '>' && str[index + 1] != '>')
 		return (OUTPUT_FILE);
 	else if (str[index] == '<' && str[index + 1] == '<')
 		return (APPEND_MODE);
 	else if (str[index] == '=')
 		return (ASSIGN);
-	else if (str[index] =='|')
+	else if (str[index] == '|')
 		return (PIPE);
+	else if (str[index] == '-')
+		return (OPTION);
+	else if (str[index] == '\"')
+		return (DOUBLE_QUOTE);
+	else if (str[index] == '\'')
+		return (SINGLE_QUOTE);
 	else if  ((str[index] >= '\t' && str[index] <= '\r') || str[index] == ' ')
 		return (WHITE_SPACE);
+	else if (str[index] == '$')
+		return (OPTION);
 	else
 		return (STR);
 }
@@ -131,11 +137,36 @@ void	split_token(t_info **info)
 	while ((*info)->str[(*info)->i])
 	{
 		status = classify_status((*info)->str, (*info)->i);
-		if ((*info)->i != 0 &&
-				status != classify_status((*info)->str,(*info)->i - 1))
-			add_token(info);
+		if (status != classify_status((*info)->str,(*info)->i + 1))
+		{
+			if (status == HERE_DOC || status == APPEND_MODE)
+				add_token(info, 1);
+			else if (status == WHITE_SPACE &&
+					(*info)->str[(*info)->i + 1] == ' ')
+				(*info)->i++;
+			else if (status == DOUBLE_QUOTE)
+			{
+				(*info)->i++;
+				while ((*info)->str[(*info)->i] &&
+						(*info)->str[(*info)->i] != '\"')
+					(*info)->i++;
+				add_token(info, 1);
+			}
+			else if (status == SINGLE_QUOTE)
+			{
+				(*info)->i++;
+				while ((*info)->str[(*info)->i] &&
+						(*info)->str[(*info)->i] != '\'')
+					(*info)->i++;
+				add_token(info, 1);
+			}
+			else	
+				add_token(info, 0);
+		}
 		(*info)->i++;
 	}
+	if (status == STR)
+		add_token(info, 0);
 	t_token	*temp;
 	temp = (*info)->token;
 	while (temp)
@@ -174,6 +205,6 @@ int	main()
 		add_history(str);
 		token = tokenize(str);
 		free(str);
-	//	system("leaks a.out");
+		//system("leaks a.out");
 	}
 }

@@ -6,7 +6,7 @@
 #    By: yecsong <yecsong@student.42seoul.kr>       +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2022/11/08 15:17:30 by yecsong           #+#    #+#              #
-#    Updated: 2022/11/08 19:21:32 by yecsong          ###   ########.fr        #
+#    Updated: 2022/11/09 16:15:59 by yecsong          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -21,7 +21,8 @@ CFLAGS := -Werror -Wextra -Wall -lreadline
 all : $(NAME)
 
 $(NAME) :
-		$(CC) $(CFLAGS) $(SRCS)
+		$(MAKE) -C ./libft all
+		$(CC) $(CFLAGS) $(SRCS) ./libft/libft.a
 
 re : fclean all
 
