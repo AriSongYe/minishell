@@ -6,7 +6,7 @@
 /*   By: yecsong <yecsong@student.42seoul.kr>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/11/07 15:58:08 by yecsong           #+#    #+#             */
-/*   Updated: 2022/11/08 21:50:16 by yecsong          ###   ########.fr       */
+/*   Updated: 2022/11/09 16:13:41 by yecsong          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -63,6 +63,12 @@ void	new_token(t_token **new)
 
 void	add_token(t_info **info)
 {
+	t_token	*last;
+
+	new_token(&(*info)->token);
+	last = last_token(&(*info)->token);
+	last->token = part_dup((*info)->str, (*info)->start, (*info)->i - 1);
+	(*info)->start = (*info)->i;
 }
 
 void	free_token(t_info **info)
@@ -79,60 +85,54 @@ void	free_token(t_info **info)
 		free(temp);
 	}
 }
+#define	STR 			0
+#define INPUT_FILE		1
+#define OUTPUT_FILE		2
+#define HERE_DOC		3
+#define APPEND_MODE		4
+#define ASSIGN			5
+#define PIPE			6
+#define	WHITE_SPACE		7
+#define	SINGLE_QUOTE	8
+#define	DOUBLE_QUOTE	9
+
+int	check_status(info, status)
+{
+}
+
+int	classify_status(char *str, int index)
+{
+	if (ft_isalpha(str[index]) || ft_isdigit(str[index]))
+		return (STR);
+	else if (str[index] == '<' && str[index + 1] != '<')
+		return (INPUT_FILE);
+	else if (str[index] == '<' && str[index + 1] == '<')
+		return (OUTPUT_FILE);
+	else if (str[index] == '>' && str[index + 1] != '>')
+		return (HERE_DOC);
+	else if (str[index] == '<' && str[index + 1] == '<')
+		return (OUTPUT_FILE);
+	else if (str[index] == '<' && str[index + 1] == '<')
+		return (APPEND_MODE);
+	else if (str[index] == '=')
+		return (ASSIGN);
+	else if (str[index] =='|')
+		return (PIPE);
+	else if  ((str[index] >= '\t' && str[index] <= '\r') || str[index] == ' ')
+		return (WHITE_SPACE);
+	else
+		return (STR);
+}
 
 void	split_token(t_info **info)
 {
+	int	status;
+	
 	while ((*info)->str[(*info)->i])
 	{
-		if ((*info)->str[(*info)->i] == '<')
-		{
-			if ((*info)->str[(*info)->i + 1] == '<')
-			{
-				(*info)->i++;
-				add_token(info);
-			}
-			else
-				add_token(info);
-		}
-		else if ((*info)->str[(*info)->i] == '>')
-		{
-			if ((*info)->str[(*info)->i + 1] == '>')
-			{
-				(*info)->i++;
-				add_token(info);
-			}
-			else
-				add_token(info);
-		}
-		else if ((*info)->str[(*info)->i] == '=')
-				add_token(info);
-		else if ((*info)->str[(*info)->i] == '$')
-				add_token(info);
-		else if ((*info)->str[(*info)->i] == '-')
-				add_token(info);
-		else if ((*info)->str[(*info)->i] == '|')
-				add_token(info);
-		else if ((*info)->str[(*info)->i] == '\'')
-		{
-			while ((*info)->str[(*info)->i])
-			{
-				(*info)->i++;
-				if ((*info)->str[(*info)->i] == '\'')
-					break ;
-			}
-			add_token(info);
-		}
-		else if ((*info)->str[(*info)->i] == '\"')
-		{
-			while ((*info)->str[(*info)->i])
-			{
-				(*info)->i++;
-				if ((*info)->str[(*info)->i] == '\"')
-					break ;
-			}
-			add_token(info);
-		}
-		else if ((*info)->str[(*info)->i] == ' ')
+		status = classify_status((*info)->str, (*info)->i);
+		if ((*info)->i != 0 &&
+				status != classify_status((*info)->str,(*info)->i - 1))
 			add_token(info);
 		(*info)->i++;
 	}
