@@ -6,7 +6,7 @@
 #    By: sanahn <sanahn@student.42seoul.kr>         +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2022/11/08 15:17:30 by yecsong           #+#    #+#              #
-#    Updated: 2022/11/08 20:37:09 by sanahn           ###   ########.fr        #
+#    Updated: 2022/11/11 17:51:16 by yecsong          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -24,13 +24,15 @@ CFLAGS := -Werror -Wextra -Wall
 all : $(NAME)
 
 $(NAME) : $(OBJS)
-	$(CC) $(CFLAGS) -lreadline -o $@ $^
+	$(MAKE) -C ./libft all
+	$(CC) $(CFLAGS) -lreadline -o $@ $^ ./libft/libft.a
 
 %.o : %.c
 	$(CC) $(CFLAGS) -c $<
 
 clean :
 	rm -f $(OBJS)
+	rm -f /libft/*.o
 
 fclean :
 	@make clean

@@ -6,12 +6,13 @@
 /*   By: sanahn <sanahn@student.42seoul.kr>         +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/11/08 20:35:59 by sanahn            #+#    #+#             */
-/*   Updated: 2022/11/11 15:20:56 by sanahn           ###   ########.fr       */
+/*   Updated: 2022/11/11 21:10:36 by yecsong          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include <readline/readline.h>
 #include <readline/history.h>
+#include "libft/libft.h"
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -32,61 +33,26 @@ typedef struct s_token
 	struct s_token	*next;
 }	t_token;
 
-void	*ft_calloc(size_t size)
+char	*ft_strndup(const char *s1, size_t size)
 {
-	void	*res;
-	char	*temp;
-	size_t	i;
-
-	res = malloc(size);
-	if (res == 0)
-		return (0);
-	temp = (char *)res;
-	i = 0;
-	while (i < size)
-	{
-		temp[i] = 0;
-		i++;
-	}
-	return (res);
-}
-
-size_t	ft_strlen(const char *str)
-{
+	char	*ptr;
+	size_t	len;
 	size_t	i;
 
 	i = 0;
-	while (str[i])
-		i++;
-	return (i);
-}
-
-char	*ft_strjoin(char *s1, char *s2)
-{
-	char	*res;
-	size_t	i;
-	size_t	s1_len;
-
-	if (!s1 || !s2)
-		return (0);
-	res = (char *)ft_calloc(sizeof(char) * (ft_strlen(s1) + ft_strlen(s2) + 1));
-	if (res == 0)
-		return (0);
-	i = 0;
-	while (s1[i] != 0)
+	len = ft_strlen(s1);
+	if (len < size)
+		size = len;
+	ptr = (char *)calloc(size + 1, sizeof(char));
+	if (!ptr)
+		return (NULL);
+	while (s1[i] && i < size)
 	{
-		res[i] = s1[i];
+		ptr[i] = s1[i];
 		i++;
 	}
-	s1_len = i;
-	i = 0;
-	while (s2[i] != 0)
-	{
-		res[s1_len + i] = s2[i];
-		i++;
-	}
-	res[s1_len + i] = 0;
-	return (res);
+	ptr[i] = '\0';
+	return (ptr);
 }
 
 int	ft_is_metachar(const char c)
@@ -104,7 +70,7 @@ t_chunk	*ft_chunk_new(char *content)
 
 	if (content == 0)
 		return (0);
-	res = (t_chunk *)ft_calloc(sizeof(t_chunk));
+	res = (t_chunk *)ft_calloc(1, sizeof(t_chunk));
 	if (res == 0)
 		return (0);
 	res->content = content;
@@ -118,7 +84,7 @@ t_token	*ft_token_new(char *content, int type)
 
 	if (content == 0)
 		return (0);
-	res = (t_token *)ft_calloc(sizeof(t_token));
+	res = (t_token *)ft_calloc(1, sizeof(t_token));
 	if (res == 0)
 		return (0);
 	res->chunks = ft_chunk_new(content);
@@ -263,7 +229,7 @@ char	*ft_get_content_metachar(const char *str, int type)
 	while (str[len] && ft_is_metachar(str[len]) == type \
 		&& str[len] != '"' && str[len] != '\'')
 		len++;
-	res = (char *)ft_calloc(sizeof(char) * (len + 1));
+	res = (char *)ft_calloc(len + 1, sizeof(char));
 	if (res == 0)
 		return (0);
 	i = 0;
@@ -347,7 +313,7 @@ char	*ft_get_content_qutoes(const char *str, size_t *i)
 	if (str[len] == 0)
 		return (0);
 	len = len - start + 1;
-	res = (char *)ft_calloc(sizeof(char) * (len + 1));
+	res = (char *)ft_calloc(len + 1, sizeof(char));
 	if (res == 0)
 		return (0);
 	start = -1;
@@ -417,6 +383,52 @@ void	ft_check_leaks(void)
 	system("leaks minishell");
 }
 
+char	*convert_env(char *content)
+{
+	int		i;
+	int		start;
+	char	*temp;
+	char	*env_char;
+	char	*str;
+
+	i = 0;
+	while (content[i])
+	{
+		if (content[i] == '$')
+		{
+			start = i;
+			i++;
+			while (content[i] && content[i] != ' ' && content[i] != '$')
+				i++;
+			temp = ft_strndup(&content[start + 1], i - start - 1);
+			env_char = getenv(temp);
+			free(temp);
+
+		}
+		else
+			i++;
+	}
+	return (temp);
+}
+
+void	get_env(t_token **tokens)
+{
+	t_token *node;
+
+	node = *tokens;
+	while (node)
+	{
+		while (node->chunks)
+		{
+			if (node->chunks->content[0] == '\"' && \
+				ft_strchr(node->chunks->content, '$'))
+				convert_env(node->chunks->content);
+			node->chunks = node->chunks->next;
+		}
+		node = node->next;
+	}
+}
+
 int	main(void)
 {
 	char	*str;
@@ -429,9 +441,14 @@ int	main(void)
 	{
 		str = readline("minishell : ");
 		add_history(str);
+		// 토크나이즈
 		ft_tokenize(&tokens, str);
-		ft_tokens_init(&tokens);
+		get_env(&tokens);
 		free(str);
+		// 후처리
+		// 환경 변수 가져오기
+//		get_env(&tokens);
+		ft_tokens_init(&tokens);
 	}
 	return (0);
 }
