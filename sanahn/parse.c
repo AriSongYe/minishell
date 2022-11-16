@@ -6,7 +6,7 @@
 /*   By: sanahn <sanahn@student.42seoul.kr>         +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/11/08 20:35:59 by sanahn            #+#    #+#             */
-/*   Updated: 2022/11/11 21:10:36 by yecsong          ###   ########.fr       */
+/*   Updated: 2022/11/16 15:25:50 by sanahn           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -378,61 +378,143 @@ void	ft_tokenize(t_token **tokens, const char *str)
 	ft_print_tokens(*tokens);
 }
 
+char	*ft_get_errno_str(void)
+{
+	return (ft_strdup("errno"));
+}
+
+char	*ft_get_content_dollar(char *str, size_t *i)
+{
+	char	*res;
+	char	*temp;
+	size_t	start;
+
+	start = *i;
+	if (str[start] == '$')
+	{
+		if (str[++(*i)] == '?' && (*i)++)
+			return (ft_get_errno_str());
+		if (str[(*i)] == 0)
+			return (ft_strdup("$"));
+		while (str[*i] && ft_is_metachar(str[*i]) != 1 && str[*i] != '$')
+			(*i)++;
+		temp = ft_strndup(str + start + 1, *i - start - 1);
+		if (temp == 0)
+			return (0);
+		res = getenv(temp);
+		free(temp);
+		if (res == 0)
+			return ((char *)ft_calloc(1, sizeof(char)));
+		return (ft_strdup(res));
+	}
+	while (str[*i] && str[*i] != '$')
+		(*i)++;
+	return (ft_strndup(str + start, *i - start));
+}
+
+int	ft_dollar_handler(t_chunk *chunk)
+{
+	char	*res;
+	char	*res_temp;
+	char	*temp;
+	size_t	i;
+
+	if (*(chunk->content) == '\'' || *(chunk->content) == '"' || \
+		!ft_strchr(chunk->content, '$'))
+		return (0);
+	res = (char *)ft_calloc(1, sizeof(char));
+	if (res == 0)
+		return (1);
+	i = 0;
+	while (chunk->content[i])
+	{
+		temp = ft_get_content_dollar(chunk->content, &i);
+		res_temp = ft_strjoin(res, temp);
+		free(temp);
+		free(res);
+		if (res_temp == 0)
+			return (1);
+		res = res_temp;
+	}
+	free(chunk->content);
+	chunk->content = res;
+	return (0);
+}
+
+int	ft_qutoes_handler(t_chunk *chunk)
+{
+	char	*temp;
+
+	if (*(chunk->content) == '\'')
+	{
+		temp = ft_strtrim(chunk->content, "'");
+		if (temp == 0)
+			return (1);
+		free(chunk->content);
+		chunk->content = temp;
+	}
+	else if (*(chunk->content) == '"')
+	{
+		temp = ft_strtrim(chunk->content, "\"");
+		if (temp == 0)
+			return (1);
+		free(chunk->content);
+		chunk->content = temp;
+		ft_dollar_handler(chunk);
+	}
+	return (0);
+}
+
+int	ft_chunk_join(t_chunk *chunk)
+{
+	char	*res;
+	t_chunk	*temp_chunk;
+
+	while (chunk->next)
+	{
+		res = ft_strjoin(chunk->content, chunk->next->content);
+		if (res == 0)
+			return (1);
+		free(chunk->content);
+		free(chunk->next->content);
+		temp_chunk = chunk->next->next;
+		free(chunk->next);
+		chunk->next = temp_chunk;
+		chunk->content = res;
+	}
+	return (0);
+}
+
+int	ft_chunk_iteri(t_token *tokens, int (*f)(t_chunk *))
+{
+	t_chunk	*chunk;
+	int		return_value;
+
+	while (tokens)
+	{
+		chunk = tokens->chunks;
+		while (chunk)
+		{
+			return_value = f(chunk);
+			if (return_value == 1)
+				return (1);
+			chunk = chunk->next;
+		}
+		tokens = tokens->next;
+	}
+	return (0);
+}
+
 void	ft_check_leaks(void)
 {
 	system("leaks minishell");
-}
-
-char	*convert_env(char *content)
-{
-	int		i;
-	int		start;
-	char	*temp;
-	char	*env_char;
-	char	*str;
-
-	i = 0;
-	while (content[i])
-	{
-		if (content[i] == '$')
-		{
-			start = i;
-			i++;
-			while (content[i] && content[i] != ' ' && content[i] != '$')
-				i++;
-			temp = ft_strndup(&content[start + 1], i - start - 1);
-			env_char = getenv(temp);
-			free(temp);
-
-		}
-		else
-			i++;
-	}
-	return (temp);
-}
-
-void	get_env(t_token **tokens)
-{
-	t_token *node;
-
-	node = *tokens;
-	while (node)
-	{
-		while (node->chunks)
-		{
-			if (node->chunks->content[0] == '\"' && \
-				ft_strchr(node->chunks->content, '$'))
-				convert_env(node->chunks->content);
-			node->chunks = node->chunks->next;
-		}
-		node = node->next;
-	}
 }
 
 int	main(void)
 {
 	char	*str;
 	t_token	*tokens;
+	// t_cmd	*cmds;
 
 	atexit(ft_check_leaks);
 	tokens = 0;
@@ -442,12 +524,21 @@ int	main(void)
 		str = readline("minishell : ");
 		add_history(str);
 		// 토크나이즈
+		printf("original\n");
+		printf("--------------------------------------------\n");
 		ft_tokenize(&tokens, str);
-		get_env(&tokens);
-		free(str);
+		printf("--------------------------------------------\n");
 		// 후처리
-		// 환경 변수 가져오기
-//		get_env(&tokens);
+		printf("\nafter processing...\n");
+		printf("--------------------------------------------\n");
+		// 따옴표 처리, 환경 변수 가져오기, 청크 합치기
+		ft_chunk_iteri(tokens, ft_dollar_handler);
+		ft_chunk_iteri(tokens, ft_qutoes_handler);
+		ft_chunk_iteri(tokens, ft_chunk_join);
+		ft_print_tokens(tokens);
+		// 파이프를 기준으로 명령줄 나누기
+		printf("--------------------------------------------\n");
+		free(str);
 		ft_tokens_init(&tokens);
 	}
 	return (0);
