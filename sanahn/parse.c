@@ -6,7 +6,7 @@
 /*   By: sanahn <sanahn@student.42seoul.kr>         +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/11/08 20:35:59 by sanahn            #+#    #+#             */
-/*   Updated: 2022/11/16 15:25:50 by sanahn           ###   ########.fr       */
+/*   Updated: 2022/11/17 17:07:24 by sanahn           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,6 +20,12 @@
 #define TYPE_TOKEN_OPERATOR 1
 #define TYPE_TOKEN_METACHAR 2
 
+#define TYPE_OPER_REDIRECT_IN  0
+#define TYPE_OPER_HEREDOC      1
+#define TYPE_OPER_REDIRECT_OUT 2
+#define TYPE_OPER_APPEND       3
+#define TYPE_OPER_PIPE         4
+
 typedef struct s_chunk
 {
 	char			*content;
@@ -32,6 +38,21 @@ typedef struct s_token
 	t_chunk			*chunks;
 	struct s_token	*next;
 }	t_token;
+
+typedef struct s_syntax
+{
+	t_token	*cmd;
+	t_token	*args;
+	t_token	*input;
+	t_token	*output;
+	t_token	*error;
+}	t_syntax;
+
+typedef struct s_cmd
+{
+	t_syntax		*syntax;
+	struct s_cmd	*next;
+}	t_cmd;
 
 char	*ft_strndup(const char *s1, size_t size)
 {
@@ -502,6 +523,190 @@ int	ft_chunk_iteri(t_token *tokens, int (*f)(t_chunk *))
 	return (0);
 }
 
+int	ft_get_operno(t_token *token)
+{
+	char	*content;
+
+	if (token->type != 2)
+		return (-1);
+	content = token->chunks->content;
+	if (ft_strlen(content) == 1)
+	{
+		if (*(content) == '|')
+			return (TYPE_OPER_PIPE);
+		if (*(content) == '<')
+			return (TYPE_OPER_REDIRECT_IN);
+		if (*(content) == '>')
+			return (TYPE_OPER_REDIRECT_OUT);
+	}
+	if (ft_strlen(content) == 2)
+	{
+		if (content[0] == '<' && content[1] == '<')
+			return (TYPE_OPER_HEREDOC);
+		if (content[0] == '>' && content[1] == '>')
+			return (TYPE_OPER_APPEND);
+	}
+	return (-1);
+}
+
+t_token	*ft_token_pop(t_token **tokens)
+{
+	t_token	*res;
+
+	if (tokens == 0)
+		return (0);
+	res = *tokens;
+	*tokens = res->next;
+	res->next = 0;
+	return (res);
+}
+
+void	ft_get_content_syntax(t_token **syntax_tokens, t_token **tokens)
+{
+	if ((*tokens)->next)
+	{
+		ft_token_add_back(syntax_tokens, ft_token_pop(tokens));
+		ft_token_add_back(syntax_tokens, ft_token_pop(tokens));
+	}
+	else
+		ft_token_add_back(syntax_tokens, ft_token_pop(tokens));
+}
+
+void	ft_set_syntax_args(t_syntax *syntax, t_token **tokens)
+{
+	int		operno;
+
+	if (syntax == 0 || tokens == 0)
+		return ;
+	while (*tokens && ft_get_operno(*tokens) != TYPE_OPER_PIPE)
+	{
+		operno = ft_get_operno(*tokens);
+		if ((*tokens)->type == TYPE_TOKEN_WORD)
+		{
+			if (syntax->cmd == 0)
+				ft_token_add_back(&(syntax->cmd), ft_token_pop(tokens));
+			else
+				ft_token_add_back(&(syntax->args), ft_token_pop(tokens));
+		}
+		else if (operno == -1)
+			ft_token_add_back(&(syntax->error), ft_token_pop(tokens));
+		else if (operno < 2)
+			ft_get_content_syntax(&(syntax->input), tokens);
+		else
+			ft_get_content_syntax(&(syntax->output), tokens);
+	}
+}
+
+t_syntax	*ft_syntax_new(t_token **tokens)
+{
+	t_syntax	*res;
+
+	if (tokens == 0)
+		return (0);
+	res = (t_syntax *)ft_calloc(1, sizeof(t_syntax));
+	if (res == 0)
+		return (0);
+	ft_set_syntax_args(res, tokens);
+	return (res);
+}
+
+t_cmd	*ft_cmd_new(t_syntax *content)
+{
+	t_cmd	*res;
+
+	if (content == 0)
+		return (0);
+	res = (t_cmd *)ft_calloc(1, sizeof(t_cmd));
+	if (res == 0)
+		return (0);
+	res->syntax = content;
+	res->next = 0;
+	return (res);
+}
+
+int	ft_cmd_add_back(t_cmd **cmds, t_cmd *new)
+{
+	t_cmd	*last;
+
+	if (cmds == 0)
+		return (1);
+	if (*cmds == 0)
+	{
+		*cmds = new;
+		return (0);
+	}
+	last = *cmds;
+	while (last->next)
+		last = last->next;
+	last->next = new;
+	return (0);
+}
+
+int	ft_set_cmd(t_cmd **cmds, t_token **tokens)
+{
+	t_token	*temp;
+
+	if (cmds == 0 || tokens == 0)
+		return (0);
+	if (ft_cmd_add_back(cmds, ft_cmd_new(ft_syntax_new(tokens))))
+		return (1);
+	while (*tokens)
+	{
+		if (ft_get_operno(*tokens) == TYPE_OPER_PIPE)
+		{
+			temp = (*tokens)->next;
+			ft_token_del(*tokens);
+			*tokens = temp;
+			if (ft_cmd_add_back(cmds, ft_cmd_new(ft_syntax_new(tokens))))
+				return (1);
+		}
+	}
+	return (0);
+}
+
+void	ft_print_cmds(t_cmd *cmds)
+{
+	printf("\n--------------------------------------------\n");
+	while (cmds)
+	{
+		printf("--------------------------------------------\n");
+		printf("cmd\n");
+		ft_print_tokens(cmds->syntax->cmd);
+		printf("\nargs\n");
+		ft_print_tokens(cmds->syntax->args);
+		printf("\ninput\n");
+		ft_print_tokens(cmds->syntax->input);
+		printf("\noutput\n");
+		ft_print_tokens(cmds->syntax->output);
+		printf("\nerror\n");
+		ft_print_tokens(cmds->syntax->error);
+		cmds = cmds->next;
+		printf("--------------------------------------------\n");
+	}
+	printf("--------------------------------------------\n\n");
+}
+
+void	ft_cmds_init(t_cmd **cmds)
+{
+	t_cmd	*temp;
+
+	if (cmds == 0)
+		return ;
+	while (*cmds)
+	{
+		temp = (*cmds)->next;
+		ft_tokens_init(&((*cmds)->syntax->cmd));
+		ft_tokens_init(&((*cmds)->syntax->args));
+		ft_tokens_init(&((*cmds)->syntax->input));
+		ft_tokens_init(&((*cmds)->syntax->output));
+		ft_tokens_init(&((*cmds)->syntax->error));
+		free((*cmds)->syntax);
+		free(*cmds);
+		*cmds = temp;
+	}
+	*cmds = 0;
+}
+
 void	ft_check_leaks(void)
 {
 	system("leaks minishell");
@@ -511,7 +716,7 @@ int	main(void)
 {
 	char	*str;
 	t_token	*tokens;
-	// t_cmd	*cmds;
+	t_cmd	*cmds;
 
 	atexit(ft_check_leaks);
 	tokens = 0;
@@ -521,23 +726,26 @@ int	main(void)
 		str = readline("minishell : ");
 		add_history(str);
 		// 토크나이즈
-		printf("original\n");
-		printf("--------------------------------------------\n");
+		// printf("original\n");
+		// printf("--------------------------------------------\n");
 		ft_tokenize(&tokens, str);
-		ft_print_tokens(tokens);
-		printf("--------------------------------------------\n");
+		// ft_print_tokens(tokens);
+		// printf("--------------------------------------------\n");
 		// 후처리
-		printf("\nafter processing...\n");
-		printf("--------------------------------------------\n");
+		// printf("\nafter processing...\n");
+		// printf("--------------------------------------------\n");
 		// 따옴표 처리, 환경 변수 가져오기, 청크 합치기
 		ft_chunk_iteri(tokens, ft_dollar_handler);
 		ft_chunk_iteri(tokens, ft_qutoes_handler);
 		ft_chunk_iteri(tokens, ft_chunk_join);
-		ft_print_tokens(tokens);
+		// ft_print_tokens(tokens);
+		// printf("--------------------------------------------\n");
 		// 파이프를 기준으로 명령줄 나누기
-		printf("--------------------------------------------\n");
+		ft_set_cmd(&cmds, &tokens);
+		ft_print_cmds(cmds);
 		free(str);
-		ft_tokens_init(&tokens);
+		ft_cmds_init(&cmds);
+		// system("leaks minishell");
 	}
 	return (0);
 }
