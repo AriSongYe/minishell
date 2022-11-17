@@ -134,7 +134,7 @@ int	ft_token_add_back(t_token **tokens, t_token *new)
 	return (0);
 }
 
-t_token	*ft_find_token_last_and_word(t_token *tokens)
+t_token	*ft_get_last_token(t_token *tokens)
 {
 	t_token	*last;
 
@@ -143,8 +143,6 @@ t_token	*ft_find_token_last_and_word(t_token *tokens)
 	last = tokens;
 	while (last->next)
 		last = last->next;
-	if (last->type == TYPE_TOKEN_METACHAR)
-		return (0);
 	return (last);
 }
 
@@ -252,15 +250,16 @@ void	ft_metachar_handler(t_token **tokens, t_token *new, int type, int prev_type
 		ft_token_add_back(tokens, new);
 	else
 	{
-		last_word = ft_find_token_last_and_word(*tokens);
+		last_word = ft_get_last_token(*tokens);
+		if (last_word && last_word->type == TYPE_TOKEN_METACHAR)
+			last_word = 0;
 		last_chunk = ft_get_last_chunk(last_word);
 		last_content = 0;
 		if (last_chunk != 0)
 			last_content = last_chunk->content;
 		if (last_word == 0 || \
 			(last_content[ft_strlen(last_content) - 1] != '"' && \
-			last_content[ft_strlen(last_content) - 1] != '\'') || \
-			prev_type)
+			last_content[ft_strlen(last_content) - 1] != '\'') || prev_type)
 			ft_token_add_back(tokens, new);
 		else
 		{
@@ -334,7 +333,9 @@ int	ft_tokenize_qutoes(t_token **tokens, const char *str, size_t *i)
 
 	prev_type = ft_get_prev_token_type(str, *i);
 	content = ft_get_content_qutoes(str, i);
-	last_word = ft_find_token_last_and_word(*tokens);
+	last_word = ft_get_last_token(*tokens);
+	if (last_word && last_word->type == TYPE_TOKEN_METACHAR)
+		last_word = 0;
 	if (last_word == 0 || prev_type)
 	{
 		if (ft_token_add_back(tokens, ft_token_new(content, TYPE_TOKEN_WORD)))
@@ -343,13 +344,10 @@ int	ft_tokenize_qutoes(t_token **tokens, const char *str, size_t *i)
 			return (1);
 		}
 	}
-	else
+	else if (ft_chunk_add_back(last_word, ft_chunk_new(content)))
 	{
-		if (ft_chunk_add_back(last_word, ft_chunk_new(content)))
-		{
-			free(content);
-			return (1);
-		}
+		free(content);
+		return (1);
 	}
 	return (0);
 }
@@ -375,7 +373,6 @@ void	ft_tokenize(t_token **tokens, const char *str)
 			return ;
 		}
 	}
-	ft_print_tokens(*tokens);
 }
 
 char	*ft_get_errno_str(void)
@@ -394,7 +391,7 @@ char	*ft_get_content_dollar(char *str, size_t *i)
 	{
 		if (str[++(*i)] == '?' && (*i)++)
 			return (ft_get_errno_str());
-		if (str[(*i)] == 0)
+		if (str[*i] == 0)
 			return (ft_strdup("$"));
 		while (str[*i] && ft_is_metachar(str[*i]) != 1 && str[*i] != '$')
 			(*i)++;
@@ -403,7 +400,7 @@ char	*ft_get_content_dollar(char *str, size_t *i)
 			return (0);
 		res = getenv(temp);
 		free(temp);
-		if (res == 0)
+		if ((str[*i] == '$' && (*i)++) || res == 0)
 			return ((char *)ft_calloc(1, sizeof(char)));
 		return (ft_strdup(res));
 	}
@@ -527,6 +524,7 @@ int	main(void)
 		printf("original\n");
 		printf("--------------------------------------------\n");
 		ft_tokenize(&tokens, str);
+		ft_print_tokens(tokens);
 		printf("--------------------------------------------\n");
 		// 후처리
 		printf("\nafter processing...\n");

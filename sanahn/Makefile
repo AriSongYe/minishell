@@ -24,18 +24,19 @@ CFLAGS := -Werror -Wextra -Wall
 all : $(NAME)
 
 $(NAME) : $(OBJS)
-	$(MAKE) -C ./libft all
-	$(CC) $(CFLAGS) -lreadline -o $@ $^ ./libft/libft.a
+	@make -C ./libft all
+	$(CC) $(CFLAGS) -o $@ $^ ./libft/libft.a -lreadline
 
 %.o : %.c
 	$(CC) $(CFLAGS) -c $<
 
 clean :
+	@make -C ./libft clean
 	rm -f $(OBJS)
-	rm -f /libft/*.o
 
 fclean :
 	@make clean
+	@make -C ./libft fclean
 	rm -f $(NAME)
 
 re :
