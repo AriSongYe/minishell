@@ -6,7 +6,7 @@
 /*   By: sanahn <sanahn@student.42seoul.kr>         +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/11/18 13:43:42 by sanahn            #+#    #+#             */
-/*   Updated: 2022/11/18 16:27:56 by sanahn           ###   ########.fr       */
+/*   Updated: 2022/11/22 15:36:49 by yecsong          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,6 +27,7 @@ int	main(void)
 
 	atexit(ft_check_leaks);
 	tokens = 0;
+	cmds = 0;
 	ft_tokens_init(&tokens);
 	while (42)
 	{
