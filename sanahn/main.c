@@ -6,13 +6,54 @@
 /*   By: sanahn <sanahn@student.42seoul.kr>         +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/11/18 13:43:42 by sanahn            #+#    #+#             */
-/*   Updated: 2022/11/22 18:25:34 by sanahn           ###   ########.fr       */
+/*   Updated: 2022/11/23 14:39:30 by sanahn           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include <readline/readline.h>
 #include <readline/history.h>
 #include "minishell.h"
+
+char	*ft_strndup(const char *s1, size_t size)
+{
+	char	*ptr;
+	size_t	len;
+	size_t	i;
+
+	i = 0;
+	len = ft_strlen(s1);
+	if (len < size)
+		size = len;
+	ptr = (char *)calloc(size + 1, sizeof(char));
+	if (!ptr)
+		return (NULL);
+	while (s1[i] && i < size)
+	{
+		ptr[i] = s1[i];
+		i++;
+	}
+	ptr[i] = '\0';
+	return (ptr);
+}
+
+void	ft_print_tokens(t_token *tokens)
+{
+	t_chunk	*temp;
+
+	if (tokens == 0)
+		return ;
+	while (tokens)
+	{
+		temp = tokens->chunks;
+		while (temp)
+		{
+			printf("%12s -> ", temp->content);
+			temp = temp->next;
+		}
+		printf("(null)\n");
+		tokens = tokens->next;
+	}
+}
 
 t_chunk	*ft_chunk_new(char *content)
 {
@@ -48,6 +89,37 @@ t_token	*ft_token_new(char *content, int token_type)
 	return (res);
 }
 
+void	ft_token_del(t_token *token)
+{
+	t_chunk	*temp;
+
+	if (token == 0)
+		return ;
+	while (token->chunks)
+	{
+		temp = token->chunks->next;
+		free(token->chunks->content);
+		free(token->chunks);
+		token->chunks = temp;
+	}
+	free(token);
+}
+
+void	ft_tokens_init(t_token **tokens)
+{
+	t_token	*temp;
+
+	if (tokens == 0)
+		return ;
+	while (*tokens)
+	{
+		temp = (*tokens)->next;
+		ft_token_del(*tokens);
+		*tokens = temp;
+	}
+	*tokens = 0;
+}
+
 void	*ft_get_last_node(void *lst, int data_type)
 {
 	void	*res;
@@ -77,29 +149,17 @@ void	ft_lst_add_back(void **lst, void *new, int data_type)
 {
 	if (lst == 0 || new == 0)
 		return ;
+	if (*lst == 0)
+	{
+		*lst = new;
+		return ;
+	}
 	if (data_type == TYPE_CHUNK)
-	{
-		if (*((t_chunk **)lst) == 0)
-			*((t_chunk **)lst) = (t_chunk *)new;
-		else
-			((t_chunk *)ft_get_last_node(*lst, data_type))->next \
-				= (t_chunk *)new;
-	}
+		((t_chunk *)ft_get_last_node(*lst, data_type))->next = new;
 	else if (data_type == TYPE_TOKEN)
-	{
-		if (*((t_token **)lst) == 0)
-			*((t_token **)lst) = (t_token *)new;
-		else
-			((t_token *)ft_get_last_node(*lst, data_type))->next \
-				= (t_chunk *)new;
-	}
+		((t_token *)ft_get_last_node(*lst, data_type))->next = new;
 	else
-	{
-		if (*((t_cmd **)lst) == 0)
-			*((t_cmd **)lst) = (t_cmd *)new;
-		else
-			((t_cmd *)ft_get_last_node(*lst, data_type))->next = (t_cmd *)new;
-	}
+		((t_cmd *)ft_get_last_node(*lst, data_type))->next = new;
 }
 
 int	ft_get_metachar_type(const char c)
@@ -107,16 +167,174 @@ int	ft_get_metachar_type(const char c)
 	if (c == ' ' || c == '\t')
 		return (TYPE_METACHAR_BLANK);
 	if (c == '|' || c == '<' || c == '>')
-		return (TYPE_METACHAR_OPER);
+		return (TYPE_METACHAR_OPERATOR);
 	return (TYPE_WORD);
 }
 
-// void	ft_tokenize_metachar()
+int	ft_tokenize_type(t_token **tokens, const char *str, int type, size_t *i)
+{
+	size_t	start;
+	t_token	*new;
+	char	*content;
 
-// void	ft_lexer(t_token **tokens, const char *str)
-// {
+	start = *i;
+	if (type == TYPE_WORD)
+		while (str[*i] && ft_get_metachar_type(str[*i]) == type \
+			&& str[*i] != '\'' && str[*i] != '"')
+			(*i)++;
+	else
+		while (str[*i] && ft_get_metachar_type(str[*i]) == type)
+			(*i)++;
+	if (start != *i)
+	{
+		content = ft_strndup(str + start, *i - start);
+		new = ft_token_new(content, type);
+		if (new == 0)
+		{
+			free(content);
+			return (1);
+		}
+		ft_lst_add_back((void **)tokens, (void *)new, TYPE_TOKEN);
+	}
+	return (0);
+}
 
-// }
+int	ft_tokenize_qutoes(t_token **tokens, const char *str, size_t *i)
+{
+	char	qutoes;
+	size_t	start;
+	t_token	*new;
+	char	*content;
+
+	qutoes = str[*i];
+	start = *i;
+	(*i)++;
+	while (str[*i] && str[*i] != qutoes)
+		(*i)++;
+	if (str[*i] == 0)
+		return (1);
+	(*i)++;
+	if (start != *i)
+	{
+		content = ft_strndup(str + start, *i - start);
+		new = ft_token_new(content, TYPE_WORD);
+		if (new == 0)
+		{
+			free(content);
+			return (1);
+		}
+		ft_lst_add_back((void **)tokens, (void *)new, TYPE_TOKEN);
+	}
+	return (0);
+}
+
+int	ft_tokenize_word(t_token **tokens, const char *str, size_t *i)
+{
+	t_token	*res;
+	t_token	*temp_token;
+	int		is_error;
+
+	res = 0;
+	while (str[*i] && ft_get_metachar_type(str[*i]) == TYPE_WORD)
+	{
+		if (str[*i] == '\'' || str[*i] == '"')
+			is_error = ft_tokenize_qutoes(&res, str, i);
+		else
+			is_error = ft_tokenize_type(&res, str, TYPE_WORD, i);
+		if (is_error)
+		{
+			ft_tokens_init(&res);
+			return (1);
+		}
+	}
+	while (res && res->next)
+	{
+		ft_lst_add_back(\
+			(void **)&res->chunks, (void *)res->next->chunks, TYPE_CHUNK);
+		temp_token = res->next->next;
+		free(res->next);
+		res->next = temp_token;
+	}
+	ft_lst_add_back((void **)tokens, (void *)res, TYPE_TOKEN);
+	return (0);
+}
+
+void	ft_tokenizer(t_token **tokens, const char *str)
+{
+	size_t	i;
+	int		is_error;
+	int		type;
+
+	if (tokens == 0 || str == 0)
+		return ;
+	i = 0;
+	while (str[i] && ft_get_metachar_type(str[i]) == TYPE_METACHAR_BLANK)
+		i++;
+	while (str[i])
+	{
+		type = ft_get_metachar_type(str[i]);
+		if (type == TYPE_WORD)
+			is_error = ft_tokenize_word(tokens, str, &i);
+		else
+			is_error = ft_tokenize_type(tokens, str, type, &i);
+		if (is_error)
+		{
+			ft_tokens_init(tokens);
+			return ;
+		}
+	}
+}
+
+int	ft_get_operator_type(t_token *token)
+{
+	char	*content;
+
+	if (token == 0 || token->type != TYPE_METACHAR_OPERATOR)
+		return (-1);
+	content = token->chunks->content;
+	if (*content == '|' && ft_strncmp(content, "|", 2) == 0)
+		return (TYPE_OPERATOR_PIPE);
+	else if (*content == '<')
+	{
+		if (ft_strncmp(content, "<", 2) == 0)
+			return (TYPE_OPERATOR_LESS);
+		if (ft_strncmp(content, "<<", 3) == 0)
+			return (TYPE_OPERATOR_DLESS);
+	}
+	else if (*content == '>')
+	{
+		if (ft_strncmp(content, ">", 2) == 0)
+			return (TYPE_OPERATOR_GREAT);
+		if (ft_strncmp(content, ">>", 3) == 0)
+			return (TYPE_OPERATOR_DGREAT);
+	}
+	else
+		return (TYPE_OPERATOR_ERROR);
+}
+
+void	ft_token_set_operator_type(t_token *tokens)
+{
+	while (tokens)
+	{
+		if (tokens->type == TYPE_METACHAR_OPERATOR)
+			tokens->type = ft_get_operator_type(tokens);
+		tokens = tokens->next;
+	}
+}
+
+int	ft_is_number(t_token *token)
+{
+	if (token->type != TYPE_WORD)
+		return (0);
+	return (0);
+}
+
+void	ft_lexer(t_token **tokens, const char *str)
+{
+	ft_tokenizer(tokens, str);
+	ft_token_set_operator_type(*tokens);
+	ft_print_tokens(*tokens);
+}
 
 int	main(void)
 {
@@ -128,6 +346,8 @@ int	main(void)
 	{
 		str = readline("minishell : ");
 		add_history(str);
+		ft_lexer(&tokens, str);
+		ft_tokens_init(&tokens);
 		free(str);
 	}
 	return (0);

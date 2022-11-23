@@ -6,7 +6,7 @@
 /*   By: sanahn <sanahn@student.42seoul.kr>         +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/11/18 13:38:56 by sanahn            #+#    #+#             */
-/*   Updated: 2022/11/22 17:41:53 by sanahn           ###   ########.fr       */
+/*   Updated: 2022/11/23 14:39:46 by sanahn           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,12 +18,16 @@
 # define TYPE_CMD_TABLE 2
 # define TYPE_CMD       3
 
-# define TYPE_WORD           0
-# define TYPE_METACHAR_BLANK 1
-# define TYPE_METACHAR_OPER  2
+# define TYPE_WORD              0
+# define TYPE_METACHAR_BLANK    1
+# define TYPE_METACHAR_OPERATOR 2
 
-# define TYPE_TOKEN_WORD     0
-# define TYPE_TOKEN_METACHAR 1
+# define TYPE_OPERATOR_LESS   2
+# define TYPE_OPERATOR_DLESS  3
+# define TYPE_OPERATOR_GREAT  4
+# define TYPE_OPERATOR_DGREAT 5
+# define TYPE_OPERATOR_PIPE   6
+# define TYPE_OPERATOR_ERROR  7
 
 # include <stdio.h>
 # include <stdlib.h>
