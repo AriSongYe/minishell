@@ -6,7 +6,7 @@
 /*   By: sanahn <sanahn@student.42seoul.kr>         +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/11/18 13:43:42 by sanahn            #+#    #+#             */
-/*   Updated: 2022/11/23 14:39:30 by sanahn           ###   ########.fr       */
+/*   Updated: 2022/11/23 18:07:31 by sanahn           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -259,7 +259,7 @@ int	ft_tokenize_word(t_token **tokens, const char *str, size_t *i)
 	return (0);
 }
 
-void	ft_tokenizer(t_token **tokens, const char *str)
+void	ft_tokenize(t_token **tokens, const char *str)
 {
 	size_t	i;
 	int		is_error;
@@ -310,29 +310,119 @@ int	ft_get_operator_type(t_token *token)
 	}
 	else
 		return (TYPE_OPERATOR_ERROR);
+	return (-1);
 }
 
-void	ft_token_set_operator_type(t_token *tokens)
+void	ft_token_set_type(t_token *tokens)
 {
+	char	*content;
+
 	while (tokens)
 	{
 		if (tokens->type == TYPE_METACHAR_OPERATOR)
 			tokens->type = ft_get_operator_type(tokens);
+		else if (tokens->type == TYPE_WORD)
+		{
+			content = tokens->chunks->content;
+			if (*content == '\'' || *content == '"')
+				tokens->type = TYPE_WORD_QUTOES;
+			else if (tokens->chunks->next)
+				tokens->type = TYPE_WORD_QUTOES;
+		}
 		tokens = tokens->next;
 	}
 }
 
-int	ft_is_number(t_token *token)
+int	ft_is_io_number(t_token *token)
 {
-	if (token->type != TYPE_WORD)
+	char	*content;
+	size_t	i;
+	size_t	start;
+	int		temp;
+
+	if (token == 0 || token->type != TYPE_WORD)
 		return (0);
+	content = token->chunks->content;
+	i = 0;
+	while (content[i] == '0')
+		i++;
+	start = i;
+	while (content[i] >= '0' && content[i] <= '9')
+		i++;
+	if (content[i] != 0 || i - start > 10 \
+		|| (i - start == 10 && content[start] > '2'))
+		return (0);
+	if (i - start < 10)
+		return (1);
+	i = 0;
+	temp = ft_atoi(content + start);
+	if (temp > 0)
+		return (1);
 	return (0);
+}
+
+void	ft_join_io_number(t_token **tokens)
+{
+	t_token	*temp;
+	t_token	*temp_next;
+
+	if (ft_is_io_number(*tokens) && \
+		(*tokens)->next && (*tokens)->next->type >= TYPE_OPERATOR_LESS)
+	{
+		ft_lst_add_back((void **)&((*tokens)->next->chunks), \
+			(void *)(*tokens)->chunks, TYPE_CHUNK);
+		temp_next = (*tokens)->next;
+		free(*tokens);
+		*tokens = temp_next;
+	}
+	temp = *tokens;
+	while (temp && temp->next)
+	{
+		if (ft_is_io_number(temp->next) && \
+			temp->next->next && temp->next->next->type >= TYPE_OPERATOR_LESS)
+		{
+			ft_lst_add_back((void **)&(temp->next->next->chunks), \
+				(void *)temp->next->chunks, TYPE_CHUNK);
+			temp_next = temp->next->next;
+			free(temp->next);
+			temp->next = temp_next;
+		}
+		temp = temp->next;
+	}
+}
+
+void	ft_blank_token_del(t_token **tokens)
+{
+	t_token	*temp;
+	t_token	*temp_next;
+
+	if (tokens == 0 || *tokens == 0)
+		return ;
+	if ((*tokens)->type == TYPE_METACHAR_BLANK)
+	{
+		temp = (*tokens)->next;
+		ft_token_del(*tokens);
+		*tokens = temp;
+	}
+	temp = *tokens;
+	while (temp && temp->next)
+	{
+		if (temp->next->type == TYPE_METACHAR_BLANK)
+		{
+			temp_next = temp->next->next;
+			ft_token_del(temp->next);
+			temp->next = temp_next;
+		}
+		temp = temp->next;
+	}
 }
 
 void	ft_lexer(t_token **tokens, const char *str)
 {
-	ft_tokenizer(tokens, str);
-	ft_token_set_operator_type(*tokens);
+	ft_tokenize(tokens, str);
+	ft_token_set_type(*tokens);
+	ft_join_io_number(tokens);
+	ft_blank_token_del(tokens);
 	ft_print_tokens(*tokens);
 }
 
