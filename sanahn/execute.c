@@ -6,7 +6,7 @@
 /*   By: sanahn <sanahn@student.42seoul.kr>         +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/11/22 16:04:08 by yecsong           #+#    #+#             */
-/*   Updated: 2022/11/29 16:13:24 by sanahn           ###   ########.fr       */
+/*   Updated: 2022/11/29 19:54:02 by yecsong          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -167,7 +167,7 @@ char	*read_fd(int fd)
 	return (store);
 }
 
-int	link_pipe(t_cmd **cmd, char **envp)
+int	link_pipe(t_cmd *cmd, char **envp)
 {
 	int		pipe_fd[2];
 	int		is_builtin;
@@ -181,13 +181,13 @@ int	link_pipe(t_cmd **cmd, char **envp)
 	{
 		if (!is_builtin)
 		{
-			if ((*cmd)->next)
+			if (cmd->next)
 			{
 				close(pipe_fd[READ]);
 				dup2(pipe_fd[WRITE], 1);
 				close(pipe_fd[WRITE]);
 			}
-			execve((*cmd)->cmd_info[0], (*cmd)->cmd_info, envp);
+			execve(cmd->cmd_info[0], cmd->cmd_info, envp);
 		}
 		else
 			;
@@ -199,7 +199,7 @@ int	link_pipe(t_cmd **cmd, char **envp)
 	}
 	else
 	{
-		if ((*cmd)->next)
+		if (cmd->next)
 		{
 			close(pipe_fd[WRITE]);
 			dup2(pipe_fd[READ], 0);
@@ -224,25 +224,17 @@ int	link_pipe(t_cmd **cmd, char **envp)
 int	execute_cmd(t_cmd **cmd, char **envp)
 {
 	t_cmd	*cmd_temp;
-	int		std_fd;
+	int		std_input;
 
-	std_fd = dup(0);
+	std_input = dup(0);
 	cmd_temp = *cmd;
 	while (cmd_temp)
 	{
-		if (cmd_temp->syntax->cmd == NULL)
-			return 0;
-		(*cmd)->cmd_info = get_cmd_info(&cmd_temp, envp);
-		if (!access((*cmd)->cmd_info[0] ,X_OK))
-			link_pipe(cmd, envp);
-		int	i;
-		i = 0;
-		while ((*cmd)->cmd_info[i])
-			free((*cmd)->cmd_info[i++]);
-		free((*cmd)->cmd_info);
+		cmd_temp->cmd_info = get_cmd_info(&cmd_temp, envp);
+		link_pipe(cmd_temp, envp);
 		cmd_temp = cmd_temp->next;
 	}
-	dup2(std_fd, 0);
+	dup2(std_input, 0);
 	return (0);
 }
 
@@ -280,7 +272,7 @@ char	*valid_cmd(char *cmd, char **path)
 	char	*cmd_path;
 	char	*temp;
 	int		i;
-
+	
 	i = 0;
 	if (!access(cmd, X_OK))
 		return (cmd);
@@ -326,7 +318,7 @@ char	**get_cmd_info(t_cmd **cmd, char **envp)
 
 	i = args_len(cmd);
 	args = (*cmd)->syntax->args;
-	cmd_info = (char **)malloc(sizeof(char *) * (i + 2));
+	cmd_info = (char **)calloc(i + 2, sizeof(char *));
 	i = 1;
 	while (args)
 	{
@@ -334,7 +326,6 @@ char	**get_cmd_info(t_cmd **cmd, char **envp)
 		args = args->next;
 		i++;
 	}
-	cmd_info[i] = NULL;
 	path = parsing_path(envp);
 	cmd_info[0] = valid_cmd((*cmd)->syntax->cmd->chunks->content, path);
 	free(path);
