@@ -6,7 +6,7 @@
 /*   By: sanahn <sanahn@student.42seoul.kr>         +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/11/18 13:43:25 by sanahn            #+#    #+#             */
-/*   Updated: 2022/11/18 17:13:08 by sanahn           ###   ########.fr       */
+/*   Updated: 2022/11/29 16:12:43 by sanahn           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -114,25 +114,25 @@ t_token	*ft_token_pop(t_token **tokens)
 	return (res);
 }
 
-int ft_excute_cmd(t_cmd **cmd)
-{
-	char	*cmd_str;
+// int ft_excute_cmd(t_cmd **cmd)
+// {
+// 	char	*cmd_str;
 
-	cmd_str = (*cmd)->syntax->cmd->chunks->content;
-	if (ft_strncmp(cmd_str, "cd", 3) == 0)
-		ft_commamd_cd(cmd);
-	else if (ft_strncmp(cmd_str, "echo", 5) == 0)
-		ft_command_echo(cmd);
-	else if (ft_strncmp(cmd_str, "pwd", 4) == 0)
-		ft_command_pwd(cmd);
-	else if (ft_strncmp(cmd_str, "export", 7) == 0)
-		ft_command_export(cmd);
-	else if (ft_strncmp(cmd_str, "unset", 6) == 0)
-		ft_command_unset(cmd);
-	else if (ft_strncmp(cmd_str, "env", 4) == 0)
-		ft_command_env(cmd);
-	else if (ft_strncmp(cmd_str, "exit", 5) == 0)
-		ft_command_exit(cmd);
-	else
-		ft_command_others(cmd);
-}
+// 	cmd_str = (*cmd)->syntax->cmd->chunks->content;
+// 	if (ft_strncmp(cmd_str, "cd", 3) == 0)
+// 		ft_commamd_cd(cmd);
+// 	else if (ft_strncmp(cmd_str, "echo", 5) == 0)
+// 		ft_command_echo(cmd);
+// 	else if (ft_strncmp(cmd_str, "pwd", 4) == 0)
+// 		ft_command_pwd(cmd);
+// 	else if (ft_strncmp(cmd_str, "export", 7) == 0)
+// 		ft_command_export(cmd);
+// 	else if (ft_strncmp(cmd_str, "unset", 6) == 0)
+// 		ft_command_unset(cmd);
+// 	else if (ft_strncmp(cmd_str, "env", 4) == 0)
+// 		ft_command_env(cmd);
+// 	else if (ft_strncmp(cmd_str, "exit", 5) == 0)
+// 		ft_command_exit(cmd);
+// 	else
+// 		ft_command_others(cmd);
+// }

@@ -6,7 +6,7 @@
 /*   By: sanahn <sanahn@student.42seoul.kr>         +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/11/18 13:43:42 by sanahn            #+#    #+#             */
-/*   Updated: 2022/11/18 16:27:56 by sanahn           ###   ########.fr       */
+/*   Updated: 2022/11/29 16:12:11 by sanahn           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,14 +19,17 @@ void	ft_check_leaks(void)
 	system("leaks minishell");
 }
 
-int	main(void)
+int	main(int argc, char **argv, char **envp)
 {
 	char	*str;
 	t_token	*tokens;
 	t_cmd	*cmds;
 
+	(void)argc;
+	(void)argv;
 	atexit(ft_check_leaks);
 	tokens = 0;
+	cmds = 0;
 	ft_tokens_init(&tokens);
 	while (42)
 	{
@@ -48,6 +51,7 @@ int	main(void)
 		// 파이프를 기준으로 명령줄 나누기
 		ft_set_cmd(&cmds, &tokens);
 		ft_print_cmds(cmds);
+		execute_cmd(&cmds, envp);
 		free(str);
 		ft_cmds_init(&cmds);
 		// system("leaks minishell");

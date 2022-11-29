@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   execute.c                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yecsong <yecsong@student.42seoul.kr>       +#+  +:+       +#+        */
+/*   By: sanahn <sanahn@student.42seoul.kr>         +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/11/22 16:04:08 by yecsong           #+#    #+#             */
-/*   Updated: 2022/11/29 15:31:46 by yecsong          ###   ########.fr       */
+/*   Updated: 2022/11/29 16:13:24 by sanahn           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,7 @@
 char	*read_line(int fd, char *store, int *end);
 char	*ft_mystrjoin(char *s1, char *s2);
 int		ft_mystrchr(const char *s, int *end);
+char	**get_cmd_info(t_cmd **cmd, char **envp);
 
 int	ft_mystrlen(const char *s)
 {
@@ -288,7 +289,7 @@ char	*valid_cmd(char *cmd, char **path)
 		temp = join_path(cmd, path[i]);
 		if (!access (temp, X_OK))
 			break ;
-		if (path [1 + i++] != NULL)
+		if (path [i++ + 1] != NULL)
 			free(temp);
 	}
 	cmd_path = temp;
@@ -299,6 +300,7 @@ char	*valid_cmd(char *cmd, char **path)
 	}
 	return (cmd_path);
 }
+
 int	args_len(t_cmd **cmd)
 {
 	t_token	*args;
@@ -321,7 +323,7 @@ char	**get_cmd_info(t_cmd **cmd, char **envp)
 	char	**cmd_info;
 	int		i;
 	t_token	*args;
-	
+
 	i = args_len(cmd);
 	args = (*cmd)->syntax->args;
 	cmd_info = (char **)malloc(sizeof(char *) * (i + 2));

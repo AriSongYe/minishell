@@ -6,14 +6,15 @@
 #    By: sanahn <sanahn@student.42seoul.kr>         +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2022/11/08 15:17:30 by yecsong           #+#    #+#              #
-#    Updated: 2022/11/18 14:24:24 by sanahn           ###   ########.fr        #
+#    Updated: 2022/11/29 16:11:34 by sanahn           ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
 NAME := minishell
 
 SRCS := main.c unit_chunk.c unit_token.c unit_syntax.c unit_cmd.c \
-	tokenize.c tokenize_metachar.c handler_dollar_qutoes.c utils.c
+	tokenize.c tokenize_metachar.c handler_dollar_qutoes.c utils.c \
+	execute.c
 OBJS := $(SRCS:%.c=%.o)
 
 CC := cc

@@ -6,7 +6,7 @@
 /*   By: sanahn <sanahn@student.42seoul.kr>         +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/11/18 13:38:56 by sanahn            #+#    #+#             */
-/*   Updated: 2022/11/18 15:32:35 by sanahn           ###   ########.fr       */
+/*   Updated: 2022/11/29 16:11:20 by sanahn           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,8 +23,13 @@
 # define TYPE_OPER_APPEND       3
 # define TYPE_OPER_PIPE         4
 
+# define READ  0
+# define WRITE 1
+
 # include <stdio.h>
 # include <stdlib.h>
+# include <unistd.h>
+# include "libft/libft.h"
 
 typedef struct s_chunk
 {
@@ -51,6 +56,7 @@ typedef struct s_syntax
 typedef struct s_cmd
 {
 	t_syntax		*syntax;
+	char			**cmd_info;
 	struct s_cmd	*next;
 }	t_cmd;
 
@@ -84,4 +90,6 @@ int			ft_del_empty_token(t_token **tokens);
 t_syntax	*ft_syntax_new(t_token **tokens);
 int			ft_set_cmd(t_cmd **cmds, t_token **tokens);
 void		ft_cmds_init(t_cmd **cmds);
+
+int	execute_cmd(t_cmd **cmd, char **envp);
 #endif
