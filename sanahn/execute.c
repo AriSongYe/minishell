@@ -6,7 +6,7 @@
 /*   By: sanahn <sanahn@student.42seoul.kr>         +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/11/22 16:04:08 by yecsong           #+#    #+#             */
-/*   Updated: 2022/11/29 20:53:45 by yecsong          ###   ########.fr       */
+/*   Updated: 2022/11/30 00:13:53 by yecsong          ###   ########.fr       */
 /*   Updated: 2022/11/29 19:58:00 by sanahn           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
@@ -168,55 +168,71 @@ char	*read_fd(int fd)
 	return (store);
 }
 
+void	child_exec(t_cmd *cmd, char **envp, int pipe_fd[2])
+{
+	if (cmd->next)
+	{
+		close(pipe_fd[READ]);
+		dup2(pipe_fd[WRITE], 1);
+		close(pipe_fd[WRITE]);
+	}
+	if (access(cmd->cmd_info[0], F_OK))
+		exit(127);
+	else if (access(cmd->cmd_info[0], X_OK))
+		exit(126);
+	execve(cmd->cmd_info[0], cmd->cmd_info, envp);
+}
+
+void	parent_exec(t_cmd *cmd, int pipe_fd[2])
+{
+	int	status;
+	
+	(void)cmd;
+	(void)pipe_fd[2];
+	status = 0;
+	if (cmd->next)
+	{
+		close(pipe_fd[WRITE]);
+		dup2(pipe_fd[READ], 0);
+		close(pipe_fd[READ]);
+	}
+	/*
+	else
+	{
+		int temp_fd;
+		char	*temp;
+		temp_fd = open("a.txt", O_RDWR | O_CREAT, 0644);
+		temp = read_fd(pipe_fd[0]);
+		write(temp_fd, temp, ft_strlen(temp));
+	}
+	*/
+	waitpid(0, &status, 0);
+	if (status / 256 == 127)
+		printf("minishell: command not found: %s\n", cmd->cmd_info[0]);
+	else if (status / 256 == 126)
+		write(2, "Permission : Denied\n", 25);
+
+	printf("status = %d\n", status / 256);
+}
+
 int	link_pipe(t_cmd *cmd, char **envp)
 {
 	int		pipe_fd[2];
-	int		is_builtin;
 	pid_t	pid;
+	int		status;
 
-	is_builtin = 0;
+	status = 0;
 	if (pipe(pipe_fd) == -1)
 		return (1);
 	pid = fork();
 	if (pid == 0)
-	{
-		if (!is_builtin)
-		{
-			if (cmd->next)
-			{
-				close(pipe_fd[READ]);
-				dup2(pipe_fd[WRITE], 1);
-				close(pipe_fd[WRITE]);
-			}
-			execve(cmd->cmd_info[0], cmd->cmd_info, envp);
-		}
-		else
-			;
-	}
+		child_exec(cmd, envp, pipe_fd);
+	else if (pid > 0)
+		parent_exec(cmd, pipe_fd);
 	else if (pid < 0)
 	{
 		close(pipe_fd[1]);
 		close(pipe_fd[0]);
-	}
-	else
-	{
-		if (cmd->next)
-		{
-			close(pipe_fd[WRITE]);
-			dup2(pipe_fd[READ], 0);
-			close(pipe_fd[READ]);
-		}
-		/*
-		else
-		{
-			int temp_fd;
-			char	*temp;
-			temp_fd = open("a.txt", O_RDWR | O_CREAT, 0644);
-			temp = read_fd(pipe_fd[0]);
-			write(temp_fd, temp, ft_strlen(temp));
-		}
-		*/
-		waitpid(0, NULL, 0);
 	}
 	return (0);
 }
@@ -285,12 +301,9 @@ char	*valid_cmd(char *cmd, char **path)
 		if (path [i++ + 1] != NULL)
 			free(temp);
 	}
-	cmd_path = temp;
 	if (access (temp, X_OK))
-	{
-		printf("minishell: command not found: %s\n", cmd);
-		return (NULL);
-	}
+		return (cmd);
+	cmd_path = temp;
 	return (cmd_path);
 }
 

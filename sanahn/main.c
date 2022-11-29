@@ -6,7 +6,7 @@
 /*   By: sanahn <sanahn@student.42seoul.kr>         +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/11/18 13:43:42 by sanahn            #+#    #+#             */
-/*   Updated: 2022/11/29 19:53:16 by yecsong          ###   ########.fr       */
+/*   Updated: 2022/11/30 00:11:00 by yecsong          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,7 +28,6 @@ int	main(int argc, char **argv, char **envp)
 	(void)argc;
 	(void)argv;
 	//(void)envp;
-	atexit(ft_check_leaks);
 	tokens = 0;
 	cmds = 0;
 	ft_tokens_init(&tokens);
