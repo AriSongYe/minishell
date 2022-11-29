@@ -6,7 +6,7 @@
 /*   By: sanahn <sanahn@student.42seoul.kr>         +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/11/22 16:04:08 by yecsong           #+#    #+#             */
-/*   Updated: 2022/11/29 19:54:02 by yecsong          ###   ########.fr       */
+/*   Updated: 2022/11/29 19:58:00 by sanahn           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,6 +19,7 @@ char	**get_cmd_info(t_cmd **cmd, char **envp);
 int	ft_mystrlen(const char *s)
 {
 	int	i;
+	int	y;
 
 	i = 0;
 	while (s[i] != '\0')
@@ -272,7 +273,7 @@ char	*valid_cmd(char *cmd, char **path)
 	char	*cmd_path;
 	char	*temp;
 	int		i;
-	
+
 	i = 0;
 	if (!access(cmd, X_OK))
 		return (cmd);
