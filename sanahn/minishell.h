@@ -6,7 +6,7 @@
 /*   By: sanahn <sanahn@student.42seoul.kr>         +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/11/18 13:38:56 by sanahn            #+#    #+#             */
-/*   Updated: 2022/11/29 16:11:20 by sanahn           ###   ########.fr       */
+/*   Updated: 2022/11/29 20:20:26 by yecsong          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,6 +29,7 @@
 # include <stdio.h>
 # include <stdlib.h>
 # include <unistd.h>
+# include <fcntl.h>
 # include "libft/libft.h"
 
 typedef struct s_chunk
@@ -91,5 +92,6 @@ t_syntax	*ft_syntax_new(t_token **tokens);
 int			ft_set_cmd(t_cmd **cmds, t_token **tokens);
 void		ft_cmds_init(t_cmd **cmds);
 
-int	execute_cmd(t_cmd **cmd, char **envp);
+char		*get_next_line(int fd);
+int			execute_cmd(t_cmd **cmd, char **envp);
 #endif
