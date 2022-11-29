@@ -1,0 +1,340 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   execute.c                                          :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: yecsong <yecsong@student.42seoul.kr>       +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2022/11/22 16:04:08 by yecsong           #+#    #+#             */
+/*   Updated: 2022/11/29 15:31:46 by yecsong          ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
+#include "minishell.h"
+char	*read_line(int fd, char *store, int *end);
+char	*ft_mystrjoin(char *s1, char *s2);
+int		ft_mystrchr(const char *s, int *end);
+
+int	ft_mystrlen(const char *s)
+{
+	int	i;
+
+	i = 0;
+	while (s[i] != '\0')
+	{
+		i++;
+	}
+	return (i);
+}
+
+size_t	ft_mystrlcpy(char *dst, const char *src, size_t dstsize)
+{
+	size_t	i;
+	size_t	src_len;
+
+	i = 0;
+	if (src == NULL)
+		return (0);
+	src_len = ft_mystrlen(src);
+	if (dstsize == 0)
+		return (src_len);
+	while (src[i] != '\0' && i < dstsize - 1)
+	{
+		dst[i] = src[i];
+		i++;
+	}
+	dst[i] = '\0';
+	return (src_len);
+}
+
+char	*ft_mystrdup(const char *s1, int size)
+{
+	char	*ptr;
+	int		i;
+
+	i = 0;
+	ptr = (char *)malloc(sizeof(char) * (size + 1));
+	if (!ptr)
+		return (NULL);
+	while (i < size && s1[i])
+	{
+		ptr[i] = s1[i];
+		i++;
+	}
+	ptr[i] = '\0';
+	return (ptr);
+}
+char	*get_next_line(int fd)
+{
+	static char	*store;
+	char		*line;
+	char		*temp;
+	int			end;
+
+	end = 0;
+	temp = read_line(fd, store, &end);
+	if (!temp || end == 0)
+	{
+		free(temp);
+		store = NULL;
+		return (NULL);
+	}
+	line = ft_mystrdup(temp, end);
+	store = ft_mystrdup(temp + end, ft_mystrlen (temp + end));
+	free(temp);
+	return (line);
+}
+
+char	*read_line(int fd, char *store, int *end)
+{
+	char	*buff;
+	int		n;
+
+	if (store && ft_mystrchr(store, end))
+		return (store);
+	if (store)
+		*end = ft_mystrlen(store);
+	buff = (char *)malloc(sizeof(char) * (10 + 1));
+	while (1)
+	{
+		n = read(fd, buff, 10);
+		if (n == 0 || n == -1)
+			break ;
+		buff[n] = '\0';
+		store = ft_mystrjoin(store, buff);
+		if (!store || ft_mystrchr(store, end))
+			break ;
+		*end += n;
+	}
+	free(buff);
+	return (store);
+}
+
+char	*ft_mystrjoin(char *s1, char *s2)
+{
+	size_t	s1_len;
+	size_t	s2_len;
+	char	*ptr;
+
+	s1_len = 0;
+	if (s1)
+		s1_len = ft_mystrlen(s1);
+	s2_len = ft_mystrlen(s2);
+	ptr = (char *)malloc(sizeof(char) *(s1_len + s2_len + 1));
+	if (!ptr)
+		return (NULL);
+	ft_mystrlcpy(ptr, s1, s1_len + 1);
+	ft_mystrlcpy(ptr + s1_len, s2, s2_len + 1);
+	free(s1);
+	return (ptr);
+}
+
+int	ft_mystrchr(const char *s, int *end)
+{
+	size_t	i;
+
+	i = 0;
+	while (s[i])
+	{
+		if (s[i] == '\n')
+		{
+			*end = i + 1;
+			return (1);
+		}
+		i++;
+	}
+	return (0);
+}
+char	*read_fd(int fd)
+{
+	char	*temp;
+	char	*temp2;
+	char	*store;
+
+	store = "";
+	while (1)
+	{
+		temp = get_next_line(fd);
+		if (!temp)
+			break ;
+		temp2 = ft_strjoin(store, temp);
+		if (store[0] != '\0')
+			free(store);
+		store = temp2;
+		free(temp);
+	}
+	return (store);
+}
+
+int	link_pipe(t_cmd **cmd, char **envp)
+{
+	int		pipe_fd[2];
+	int		is_builtin;
+	pid_t	pid;
+
+	is_builtin = 0;
+	if (pipe(pipe_fd) == -1)
+		return (1);
+	pid = fork();
+	if (pid == 0)
+	{
+		if (!is_builtin)
+		{
+			if ((*cmd)->next)
+			{
+				close(pipe_fd[READ]);
+				dup2(pipe_fd[WRITE], 1);
+				close(pipe_fd[WRITE]);
+			}
+			execve((*cmd)->cmd_info[0], (*cmd)->cmd_info, envp);
+		}
+		else
+			;
+	}
+	else if (pid < 0)
+	{
+		close(pipe_fd[1]);
+		close(pipe_fd[0]);
+	}
+	else
+	{
+		if ((*cmd)->next)
+		{
+			close(pipe_fd[WRITE]);
+			dup2(pipe_fd[READ], 0);
+			close(pipe_fd[READ]);
+		}
+		/*
+		else
+		{
+			int temp_fd;
+			char	*temp;
+			temp_fd = open("a.txt", O_RDWR | O_CREAT, 0644);
+			temp = read_fd(pipe_fd[0]);
+			write(temp_fd, temp, ft_strlen(temp));
+		}
+		*/
+		waitpid(0, NULL, 0);
+	}
+	return (0);
+}
+
+
+int	execute_cmd(t_cmd **cmd, char **envp)
+{
+	t_cmd	*cmd_temp;
+	int		std_fd;
+
+	std_fd = dup(0);
+	cmd_temp = *cmd;
+	while (cmd_temp)
+	{
+		if (cmd_temp->syntax->cmd == NULL)
+			return 0;
+		(*cmd)->cmd_info = get_cmd_info(&cmd_temp, envp);
+		if (!access((*cmd)->cmd_info[0] ,X_OK))
+			link_pipe(cmd, envp);
+		int	i;
+		i = 0;
+		while ((*cmd)->cmd_info[i])
+			free((*cmd)->cmd_info[i++]);
+		free((*cmd)->cmd_info);
+		cmd_temp = cmd_temp->next;
+	}
+	dup2(std_fd, 0);
+	return (0);
+}
+
+char	**parsing_path(char **envp)
+{
+	char	**path;
+	char	*temp;
+
+	while (*envp)
+	{
+		if (!ft_strncmp(*envp, "PATH=", 5))
+			break ;
+		(*envp)++;
+	}
+	temp = ft_strdup(*envp + 5);
+	path = ft_split(temp, ':');
+	free(temp);
+	return (path);
+}
+
+char	*join_path(char *cmd, char *path)
+{
+	char	*temp;
+	char	*temp2;
+
+	temp = ft_strjoin("/", cmd);
+	temp2 = temp;
+	temp = ft_strjoin(path, temp2);
+	free(temp2);
+	return (temp);
+}
+
+char	*valid_cmd(char *cmd, char **path)
+{
+	char	*cmd_path;
+	char	*temp;
+	int		i;
+
+	i = 0;
+	if (!access(cmd, X_OK))
+		return (cmd);
+	while (path[i])
+	{
+		temp = join_path(cmd, path[i]);
+		if (!access (temp, X_OK))
+			break ;
+		if (path [1 + i++] != NULL)
+			free(temp);
+	}
+	cmd_path = temp;
+	if (access (temp, X_OK))
+	{
+		printf("minishell: command not found: %s\n", cmd);
+		return (NULL);
+	}
+	return (cmd_path);
+}
+int	args_len(t_cmd **cmd)
+{
+	t_token	*args;
+	int		i;
+
+	i = 0;
+	args = (*cmd)->syntax->args;
+	while (args)
+	{
+		args = args->next;
+		i++;
+	}
+	return (i);
+
+}
+
+char	**get_cmd_info(t_cmd **cmd, char **envp)
+{
+	char	**path;
+	char	**cmd_info;
+	int		i;
+	t_token	*args;
+	
+	i = args_len(cmd);
+	args = (*cmd)->syntax->args;
+	cmd_info = (char **)malloc(sizeof(char *) * (i + 2));
+	i = 1;
+	while (args)
+	{
+		cmd_info[i] = ft_strdup(args->chunks->content);
+		args = args->next;
+		i++;
+	}
+	cmd_info[i] = NULL;
+	path = parsing_path(envp);
+	cmd_info[0] = valid_cmd((*cmd)->syntax->cmd->chunks->content, path);
+	free(path);
+	return (cmd_info);
+}
