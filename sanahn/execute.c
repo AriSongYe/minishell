@@ -6,7 +6,7 @@
 /*   By: sanahn <sanahn@student.42seoul.kr>         +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/11/22 16:04:08 by yecsong           #+#    #+#             */
-/*   Updated: 2022/11/30 00:13:53 by yecsong          ###   ########.fr       */
+/*   Updated: 2022/12/01 16:43:50 by yecsong          ###   ########.fr       */
 /*   Updated: 2022/11/29 19:58:00 by sanahn           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
@@ -211,7 +211,6 @@ void	parent_exec(t_cmd *cmd, int pipe_fd[2])
 		printf("minishell: command not found: %s\n", cmd->cmd_info[0]);
 	else if (status / 256 == 126)
 		write(2, "Permission : Denied\n", 25);
-
 	printf("status = %d\n", status / 256);
 }
 
