@@ -6,7 +6,7 @@
 /*   By: sanahn <sanahn@student.42seoul.kr>         +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/11/18 13:38:56 by sanahn            #+#    #+#             */
-/*   Updated: 2022/11/29 20:20:26 by yecsong          ###   ########.fr       */
+/*   Updated: 2022/12/06 16:26:48 by yecsong          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -60,6 +60,20 @@ typedef struct s_cmd
 	char			**cmd_info;
 	struct s_cmd	*next;
 }	t_cmd;
+
+typedef struct s_entity
+{
+	char			*name;
+	t_token			*value;
+	struct s_entity	*next;
+}	t_entity;
+
+typedef struct s_env
+{
+	t_entity	*temp;
+	t_entity	*local;
+}	t_env;
+
 
 char		*ft_strndup(const char *s1, size_t size);
 void		ft_print_tokens(t_token *tokens);

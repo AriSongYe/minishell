@@ -6,13 +6,13 @@
 /*   By: yecsong <yecsong@student.42seoul.kr>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/11/19 11:38:11 by yecsong           #+#    #+#             */
-/*   Updated: 2022/12/01 20:26:43 by yecsong          ###   ########.fr       */
+/*   Updated: 2022/12/06 18:21:21 by yecsong          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../sanahn/minishell.h"
 #include "../sanahn/libft/libft.h"
-void    ft_command_echo(char **cmd)
+void    ft_command_echo(char **cmd_info)
 
 {
     int     is_n;
@@ -20,19 +20,19 @@ void    ft_command_echo(char **cmd)
 	
 	i = 0;
 	is_n = 1;
-	if (cmd[1][i] != ('-'))
+	if (cmd_info[1][i] != ('-'))
 		is_n = 0;
 	i++;
-	while (cmd[1][i])
-		if (cmd[1][i++] != 'n')
+	while (cmd_info[1][i])
+		if (cmd_info[1][i++] != 'n')
 			is_n = 0;
 	i = 1;
 	if (is_n)
 		i++;
-	while (cmd[i])
+	while (cmd_info[i])
 	{
-		printf("%s", cmd[i]);
-		if (cmd[i + 1] != NULL)
+		printf("%s", cmd_info[i]);
+		if (cmd_info[i + 1] != NULL)
 			printf(" ");
 		i++;
 	}
@@ -53,9 +53,18 @@ void    ft_command_pwd()
     free(path);
 }
 
-void    ft_command_unset()
+void    ft_command_unset(char **cmd_info, char **envp, t_env *env)
 {
+	int	i;
+
+	i = 1;
+	while (cmd_info[i])
+	{
+
+		i++;
+	}
 }
+
 long long ft_atoll(const char *str)
 {
 	long long	sign;
@@ -81,28 +90,29 @@ long long ft_atoll(const char *str)
 	return (sign * num);
 }
 
-void    ft_command_exit(char **cmd)
+void    ft_command_exit(char **cmd_info)
 {
     long long exitcode;
     int	i;
 
 	i = 0;
     printf("exit\n");
-	if (cmd[1] && cmd[2])
+	if (cmd_info[1] && cmd_info[2])
 	{
 		printf("minishell: exit: too many arguments\n");
 		exit(1);
 	}
-	while (cmd[1][i])
+	while (cmd_info[1][i])
 	{
-		if (cmd[1][i] != '-' && cmd[1][i] != '+' && (cmd[1][i] < '0' || cmd[1][i] > '9'))
+		if (cmd_info[1][i] != '-' && cmd_info[1][i] != '+' && \
+				(cmd_info[1][i] < '0' || cmd_info[1][i] > '9'))
 		{
-			printf("minishell: exit: %s: numeric argument required", cmd[1]);
+			printf("minishell: exit: %s: numeric argument required", cmd_info[1]);
 			exit(255);
 		}
 		i++;
 	}
-	exitcode = ft_atoll(cmd[1]) % 256;
+	exitcode = ft_atoll(cmd_info[1]) % 256;
     exit(exitcode);
 }
 
